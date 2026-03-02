@@ -1,0 +1,782 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Ghost Chat — Truly Anonymous Messaging</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Mono:wght@300;400;500&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #070707;
+      --surface: #111111;
+      --border: #1e1e1e;
+      --text: #e8e8e8;
+      --muted: #444;
+      --accent: #ffffff;
+      --red: #ff3b3b;
+      --green: #00e87a;
+      --grain-opacity: 0.035;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'DM Mono', monospace;
+      overflow-x: hidden;
+    }
+
+    /* Grain overlay */
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='1'/%3E%3C/svg%3E");
+      opacity: var(--grain-opacity);
+      pointer-events: none;
+      z-index: 1000;
+    }
+
+    /* NAV */
+    nav {
+      position: fixed;
+      top: 0; left: 0; right: 0;
+      padding: 1.25rem 3rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 1px solid var(--border);
+      background: rgba(7,7,7,0.85);
+      backdrop-filter: blur(20px);
+      z-index: 100;
+    }
+
+    .nav-logo {
+      font-family: 'Syne', sans-serif;
+      font-size: 1.1rem;
+      font-weight: 800;
+      letter-spacing: -0.02em;
+      display: flex;
+      align-items: center;
+      gap: 0.6rem;
+    }
+
+    .nav-links {
+      display: flex;
+      gap: 2rem;
+      list-style: none;
+    }
+
+    .nav-links a {
+      color: var(--muted);
+      text-decoration: none;
+      font-size: 0.8rem;
+      letter-spacing: 0.05em;
+      transition: color 0.2s;
+    }
+
+    .nav-links a:hover { color: var(--text); }
+
+    .nav-cta {
+      background: var(--accent);
+      color: #000;
+      border: none;
+      padding: 0.6rem 1.5rem;
+      border-radius: 4px;
+      font-family: 'Syne', sans-serif;
+      font-weight: 700;
+      font-size: 0.8rem;
+      cursor: pointer;
+      letter-spacing: 0.05em;
+      text-decoration: none;
+      transition: opacity 0.2s;
+    }
+
+    .nav-cta:hover { opacity: 0.85; }
+
+    /* HERO */
+    .hero {
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 8rem 2rem 4rem;
+      text-align: center;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .hero-glow {
+      position: absolute;
+      width: 600px;
+      height: 600px;
+      background: radial-gradient(circle, rgba(255,255,255,0.03) 0%, transparent 70%);
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      pointer-events: none;
+    }
+
+    .hero-tag {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      padding: 0.4rem 1rem;
+      border-radius: 100px;
+      font-size: 0.75rem;
+      color: var(--muted);
+      margin-bottom: 2.5rem;
+      letter-spacing: 0.05em;
+      animation: fadeUp 0.8s ease both;
+    }
+
+    .hero-tag span { color: var(--green); }
+
+    h1 {
+      font-family: 'Syne', sans-serif;
+      font-size: clamp(3rem, 8vw, 7rem);
+      font-weight: 800;
+      line-height: 0.95;
+      letter-spacing: -0.04em;
+      margin-bottom: 2rem;
+      animation: fadeUp 0.8s ease 0.1s both;
+    }
+
+    h1 .ghost { display: block; }
+    h1 .subtitle-word {
+      color: var(--muted);
+      font-weight: 400;
+    }
+
+    .hero-desc {
+      max-width: 480px;
+      color: #666;
+      font-size: 0.95rem;
+      line-height: 1.8;
+      margin-bottom: 3rem;
+      animation: fadeUp 0.8s ease 0.2s both;
+    }
+
+    .hero-actions {
+      display: flex;
+      gap: 1rem;
+      align-items: center;
+      animation: fadeUp 0.8s ease 0.3s both;
+    }
+
+    .btn-primary {
+      background: var(--accent);
+      color: #000;
+      border: none;
+      padding: 1rem 2.5rem;
+      border-radius: 4px;
+      font-family: 'Syne', sans-serif;
+      font-weight: 700;
+      font-size: 0.9rem;
+      cursor: pointer;
+      letter-spacing: 0.05em;
+      text-decoration: none;
+      transition: transform 0.15s, box-shadow 0.15s;
+      box-shadow: 0 0 40px rgba(255,255,255,0.1);
+    }
+
+    .btn-primary:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 0 60px rgba(255,255,255,0.2);
+    }
+
+    .btn-ghost {
+      background: transparent;
+      color: var(--muted);
+      border: 1px solid var(--border);
+      padding: 1rem 2rem;
+      border-radius: 4px;
+      font-family: 'DM Mono', monospace;
+      font-size: 0.85rem;
+      cursor: pointer;
+      text-decoration: none;
+      transition: color 0.2s, border-color 0.2s;
+    }
+
+    .btn-ghost:hover { color: var(--text); border-color: #444; }
+
+    /* TICKER */
+    .ticker {
+      border-top: 1px solid var(--border);
+      border-bottom: 1px solid var(--border);
+      overflow: hidden;
+      padding: 1rem 0;
+      background: var(--surface);
+    }
+
+    .ticker-track {
+      display: flex;
+      gap: 3rem;
+      animation: ticker 20s linear infinite;
+      white-space: nowrap;
+    }
+
+    .ticker-item {
+      font-size: 0.75rem;
+      color: var(--muted);
+      letter-spacing: 0.1em;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      flex-shrink: 0;
+    }
+
+    .ticker-item .dot {
+      width: 4px; height: 4px;
+      background: var(--green);
+      border-radius: 50%;
+    }
+
+    /* HOW IT WORKS */
+    .section {
+      padding: 8rem 3rem;
+      max-width: 1100px;
+      margin: 0 auto;
+    }
+
+    .section-label {
+      font-size: 0.7rem;
+      letter-spacing: 0.2em;
+      color: var(--muted);
+      text-transform: uppercase;
+      margin-bottom: 1rem;
+    }
+
+    .section-title {
+      font-family: 'Syne', sans-serif;
+      font-size: clamp(2rem, 4vw, 3.5rem);
+      font-weight: 800;
+      letter-spacing: -0.03em;
+      line-height: 1.05;
+      margin-bottom: 4rem;
+    }
+
+    .steps {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 1px;
+      background: var(--border);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      overflow: hidden;
+    }
+
+    .step {
+      background: var(--bg);
+      padding: 2.5rem;
+      position: relative;
+      transition: background 0.2s;
+    }
+
+    .step:hover { background: var(--surface); }
+
+    .step-num {
+      font-family: 'Syne', sans-serif;
+      font-size: 3rem;
+      font-weight: 800;
+      color: #1a1a1a;
+      line-height: 1;
+      margin-bottom: 1rem;
+    }
+
+    .step-icon { font-size: 1.5rem; margin-bottom: 1rem; }
+
+    .step h3 {
+      font-family: 'Syne', sans-serif;
+      font-size: 1rem;
+      font-weight: 700;
+      margin-bottom: 0.75rem;
+    }
+
+    .step p { color: #555; font-size: 0.82rem; line-height: 1.7; }
+
+    /* COMPARISON TABLE */
+    .comparison {
+      padding: 8rem 3rem;
+      background: var(--surface);
+      border-top: 1px solid var(--border);
+      border-bottom: 1px solid var(--border);
+    }
+
+    .comparison-inner {
+      max-width: 1100px;
+      margin: 0 auto;
+    }
+
+    .table-wrap {
+      overflow-x: auto;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.82rem;
+    }
+
+    thead tr {
+      background: #0d0d0d;
+      border-bottom: 1px solid var(--border);
+    }
+
+    th {
+      padding: 1.25rem 1.5rem;
+      text-align: left;
+      font-family: 'Syne', sans-serif;
+      font-weight: 700;
+      font-size: 0.8rem;
+      letter-spacing: 0.05em;
+      color: var(--muted);
+    }
+
+    th.highlight { color: var(--accent); }
+
+    td {
+      padding: 1.1rem 1.5rem;
+      border-bottom: 1px solid var(--border);
+      color: #666;
+    }
+
+    td:first-child { color: var(--text); font-weight: 500; }
+
+    tr:last-child td { border-bottom: none; }
+    tr:hover td { background: rgba(255,255,255,0.01); }
+
+    .yes { color: var(--green); font-weight: 600; }
+    .no { color: var(--red); }
+    .partial { color: #f5a623; }
+
+    td.highlight-col { color: var(--text); }
+
+    /* PRIVACY SECTION */
+    .privacy-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+      gap: 1px;
+      background: var(--border);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      overflow: hidden;
+    }
+
+    .privacy-card {
+      background: var(--bg);
+      padding: 2.5rem;
+      transition: background 0.2s;
+    }
+
+    .privacy-card:hover { background: #0d0d0d; }
+
+    .privacy-card .icon {
+      font-size: 2rem;
+      margin-bottom: 1.25rem;
+    }
+
+    .privacy-card h3 {
+      font-family: 'Syne', sans-serif;
+      font-size: 1.1rem;
+      font-weight: 700;
+      margin-bottom: 0.75rem;
+    }
+
+    .privacy-card p { color: #555; font-size: 0.85rem; line-height: 1.75; }
+
+    .privacy-card .tag {
+      display: inline-block;
+      margin-top: 1rem;
+      background: rgba(0,232,122,0.08);
+      border: 1px solid rgba(0,232,122,0.2);
+      color: var(--green);
+      padding: 0.25rem 0.75rem;
+      border-radius: 100px;
+      font-size: 0.72rem;
+      letter-spacing: 0.05em;
+    }
+
+    /* ARCHITECTURE */
+    .arch-box {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 2.5rem;
+      font-family: 'DM Mono', monospace;
+      font-size: 0.82rem;
+      line-height: 2;
+      color: #555;
+    }
+
+    .arch-box .highlight { color: var(--green); }
+    .arch-box .warn { color: var(--red); }
+    .arch-box .arrow { color: #333; }
+
+    /* FINAL CTA */
+    .final-cta {
+      padding: 10rem 2rem;
+      text-align: center;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .final-cta::before {
+      content: '👻';
+      position: absolute;
+      font-size: 30rem;
+      opacity: 0.015;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      pointer-events: none;
+    }
+
+    .final-cta h2 {
+      font-family: 'Syne', sans-serif;
+      font-size: clamp(2.5rem, 6vw, 5rem);
+      font-weight: 800;
+      letter-spacing: -0.04em;
+      margin-bottom: 1.5rem;
+    }
+
+    .final-cta p {
+      color: #555;
+      font-size: 0.95rem;
+      margin-bottom: 3rem;
+      max-width: 400px;
+      margin-left: auto;
+      margin-right: auto;
+      line-height: 1.8;
+    }
+
+    /* FOOTER */
+    footer {
+      border-top: 1px solid var(--border);
+      padding: 2rem 3rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      color: var(--muted);
+      font-size: 0.75rem;
+    }
+
+    /* ANIMATIONS */
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(20px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    @keyframes ticker {
+      from { transform: translateX(0); }
+      to { transform: translateX(-50%); }
+    }
+
+    .reveal {
+      opacity: 0;
+      transform: translateY(30px);
+      transition: opacity 0.7s ease, transform 0.7s ease;
+    }
+
+    .reveal.visible {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    @media (max-width: 768px) {
+      nav { padding: 1rem 1.5rem; }
+      .nav-links { display: none; }
+      .section { padding: 5rem 1.5rem; }
+      .comparison { padding: 5rem 1.5rem; }
+      footer { flex-direction: column; gap: 1rem; text-align: center; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- NAV -->
+  <nav>
+    <div class="nav-logo">
+      <span>👻</span>
+      <span>Ghost Chat</span>
+    </div>
+    <ul class="nav-links">
+      <li><a href="#how">How it works</a></li>
+      <li><a href="#privacy">Privacy</a></li>
+      <li><a href="#compare">Compare</a></li>
+    </ul>
+    <a href="http://localhost:5173" class="nav-cta">OPEN APP →</a>
+  </nav>
+
+  <!-- HERO -->
+  <section class="hero">
+    <div class="hero-glow"></div>
+    <div class="hero-tag">
+      <div class="dot"></div>
+      <span>End-to-end encrypted · Zero identity required</span>
+    </div>
+    <h1>
+      <span class="ghost">The chat app</span>
+      <span class="subtitle-word">that knows nothing</span>
+      <span class="subtitle-word">about you.</span>
+    </h1>
+    <p class="hero-desc">
+      No phone number. No email. No name. No IP logs.
+      Just an account code and a password — and messages that disappear.
+    </p>
+    <div class="hero-actions">
+      <a href="http://localhost:5173" class="btn-primary">START CHATTING FREE</a>
+      <a href="#how" class="btn-ghost">See how it works</a>
+    </div>
+  </section>
+
+  <!-- TICKER -->
+  <div class="ticker">
+    <div class="ticker-track">
+      <div class="ticker-item"><div class="dot"></div> NO PHONE NUMBER REQUIRED</div>
+      <div class="ticker-item"><div class="dot"></div> END-TO-END ENCRYPTED</div>
+      <div class="ticker-item"><div class="dot"></div> MESSAGES AUTO-DELETE</div>
+      <div class="ticker-item"><div class="dot"></div> ZERO PERSONAL DATA STORED</div>
+      <div class="ticker-item"><div class="dot"></div> NO ADS EVER</div>
+      <div class="ticker-item"><div class="dot"></div> WORLD CHAT</div>
+      <div class="ticker-item"><div class="dot"></div> GROUP CHATS</div>
+      <div class="ticker-item"><div class="dot"></div> PRIVATE MESSAGING</div>
+      <!-- Duplicate for seamless loop -->
+      <div class="ticker-item"><div class="dot"></div> NO PHONE NUMBER REQUIRED</div>
+      <div class="ticker-item"><div class="dot"></div> END-TO-END ENCRYPTED</div>
+      <div class="ticker-item"><div class="dot"></div> MESSAGES AUTO-DELETE</div>
+      <div class="ticker-item"><div class="dot"></div> ZERO PERSONAL DATA STORED</div>
+      <div class="ticker-item"><div class="dot"></div> NO ADS EVER</div>
+      <div class="ticker-item"><div class="dot"></div> WORLD CHAT</div>
+      <div class="ticker-item"><div class="dot"></div> GROUP CHATS</div>
+      <div class="ticker-item"><div class="dot"></div> PRIVATE MESSAGING</div>
+    </div>
+  </div>
+
+  <!-- HOW IT WORKS -->
+  <section class="section" id="how">
+    <div class="reveal">
+      <div class="section-label">// HOW IT WORKS</div>
+      <h2 class="section-title">Built different.<br>From the ground up.</h2>
+    </div>
+    <div class="steps reveal">
+      <div class="step">
+        <div class="step-num">01</div>
+        <div class="step-icon">🎲</div>
+        <h3>Generate an Account</h3>
+        <p>We generate a random 16-character account code for you. No name, email, or phone number ever asked. Your identity is the code.</p>
+      </div>
+      <div class="step">
+        <div class="step-num">02</div>
+        <div class="step-icon">🔑</div>
+        <h3>Keys Generated Locally</h3>
+        <p>Your encryption keypair is generated in your browser. Your private key never leaves your device. We physically cannot read your messages.</p>
+      </div>
+      <div class="step">
+        <div class="step-num">03</div>
+        <div class="step-icon">💬</div>
+        <h3>Message Freely</h3>
+        <p>Chat one-on-one, in groups, or in the global World Chat. Every private message is encrypted before it leaves your device.</p>
+      </div>
+      <div class="step">
+        <div class="step-num">04</div>
+        <div class="step-icon">💨</div>
+        <h3>Messages Disappear</h3>
+        <p>Private messages delete 24 hours after both parties have seen them. World and group messages delete after 7 days. No archives. No history.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- PRIVACY -->
+  <section class="section" id="privacy">
+    <div class="reveal">
+      <div class="section-label">// PRIVACY ARCHITECTURE</div>
+      <h2 class="section-title">What we store.<br>What we don't.</h2>
+    </div>
+
+    <div class="privacy-grid reveal">
+      <div class="privacy-card">
+        <div class="icon">🔒</div>
+        <h3>End-to-End Encryption</h3>
+        <p>Private messages are encrypted using NaCl box encryption before they leave your device. The server stores and transmits only ciphertext — completely unreadable without your private key.</p>
+        <span class="tag">TweetNaCl / libsodium</span>
+      </div>
+      <div class="privacy-card">
+        <div class="icon">👻</div>
+        <h3>Zero Identity</h3>
+        <p>We never ask for your name, phone number, or email. Your account code is randomly generated. Even we don't know who you are. There is nothing to subpoena.</p>
+        <span class="tag">No KYC ever</span>
+      </div>
+      <div class="privacy-card">
+        <div class="icon">💾</div>
+        <h3>Minimal Data Storage</h3>
+        <p>Private messages are stored only in RAM (Redis) and are never written to disk in readable form. Once deleted, they are gone forever with no recovery possible.</p>
+        <span class="tag">Redis in-memory only</span>
+      </div>
+      <div class="privacy-card">
+        <div class="icon">⏱️</div>
+        <h3>Auto-Expiring Messages</h3>
+        <p>Private messages: deleted 24 hours after both users read them. Group and World messages: deleted after 7 days. An automated cleanup job runs every hour.</p>
+        <span class="tag">No permanent logs</span>
+      </div>
+      <div class="privacy-card">
+        <div class="icon">🛡️</div>
+        <h3>Rate Limiting & Security</h3>
+        <p>All endpoints are rate-limited to prevent brute force attacks. Security headers via Helmet.js. Request body size limits. Input validation on all routes.</p>
+        <span class="tag">Helmet.js + express-rate-limit</span>
+      </div>
+      <div class="privacy-card">
+        <div class="icon">🚫</div>
+        <h3>No Ads. Ever.</h3>
+        <p>We do not run ads, sell data to third parties, or use analytics that track you. There is no business model built on your attention or your data.</p>
+        <span class="tag">Zero monetization of data</span>
+      </div>
+    </div>
+
+    <!-- Architecture diagram -->
+    <div class="arch-box reveal" style="margin-top: 2rem;">
+      <div><span class="highlight">// MESSAGE FLOW — PRIVATE CHAT</span></div>
+      <div>&nbsp;</div>
+      <div>Your device &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; Server &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; Their device</div>
+      <div>─────────────────────────────────────────────────────────</div>
+      <div>Plaintext message</div>
+      <div><span class="arrow">↓</span></div>
+      <div>Encrypt with their public key <span class="highlight">←── stored in DB (public)</span></div>
+      <div><span class="arrow">↓</span></div>
+      <div>Send ciphertext ──────────────<span class="warn">► [server sees gibberish]</span> ──────────────► Decrypt with private key</div>
+      <div><span class="arrow">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;↓</span></div>
+      <div><span class="highlight">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; Plaintext readable</span></div>
+      <div>&nbsp;</div>
+      <div><span class="warn">Private key = stays on your device. Never sent. Never stored.</span></div>
+    </div>
+  </section>
+
+  <!-- COMPARISON -->
+  <section class="comparison" id="compare">
+    <div class="comparison-inner">
+      <div class="reveal">
+        <div class="section-label">// COMPARISON</div>
+        <h2 class="section-title">How we stack up<br>against the rest.</h2>
+      </div>
+      <div class="table-wrap reveal">
+        <table>
+          <thead>
+            <tr>
+              <th>Feature</th>
+              <th class="highlight">Ghost Chat</th>
+              <th>Signal</th>
+              <th>WhatsApp</th>
+              <th>Telegram</th>
+              <th>Discord</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>No phone number required</td>
+              <td class="yes highlight-col">✓ Yes</td>
+              <td class="no">✗ Required</td>
+              <td class="no">✗ Required</td>
+              <td class="no">✗ Required</td>
+              <td class="no">✗ Required</td>
+            </tr>
+            <tr>
+              <td>No email required</td>
+              <td class="yes highlight-col">✓ Yes</td>
+              <td class="yes">✓ Yes</td>
+              <td class="no">✗ Required</td>
+              <td class="yes">✓ Yes</td>
+              <td class="no">✗ Required</td>
+            </tr>
+            <tr>
+              <td>End-to-end encrypted (private)</td>
+              <td class="yes highlight-col">✓ Yes</td>
+              <td class="yes">✓ Yes</td>
+              <td class="yes">✓ Yes</td>
+              <td class="partial">⚠ Optional</td>
+              <td class="no">✗ No</td>
+            </tr>
+            <tr>
+              <td>Messages auto-delete</td>
+              <td class="yes highlight-col">✓ Always</td>
+              <td class="partial">⚠ Optional</td>
+              <td class="partial">⚠ Optional</td>
+              <td class="partial">⚠ Optional</td>
+              <td class="no">✗ No</td>
+            </tr>
+            <tr>
+              <td>No identity stored on server</td>
+              <td class="yes highlight-col">✓ Yes</td>
+              <td class="no">✗ Phone stored</td>
+              <td class="no">✗ Phone + metadata</td>
+              <td class="no">✗ Phone stored</td>
+              <td class="no">✗ Email + data</td>
+            </tr>
+            <tr>
+              <td>Private messages in RAM only</td>
+              <td class="yes highlight-col">✓ Yes</td>
+              <td class="no">✗ No</td>
+              <td class="no">✗ No</td>
+              <td class="no">✗ No</td>
+              <td class="no">✗ No</td>
+            </tr>
+            <tr>
+              <td>No ads</td>
+              <td class="yes highlight-col">✓ Yes</td>
+              <td class="yes">✓ Yes</td>
+              <td class="no">✗ Targeted ads</td>
+              <td class="partial">⚠ Some ads</td>
+              <td class="no">✗ Yes ads</td>
+            </tr>
+            <tr>
+              <td>Open world chat room</td>
+              <td class="yes highlight-col">✓ Yes</td>
+              <td class="no">✗ No</td>
+              <td class="no">✗ No</td>
+              <td class="partial">⚠ Channels</td>
+              <td class="yes">✓ Yes</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <!-- FINAL CTA -->
+  <section class="final-cta">
+    <h2 class="reveal">Ready to disappear?</h2>
+    <p class="reveal">Join Ghost Chat. No sign up form. No verification. Just generate your code and start chatting in seconds.</p>
+    <a href="http://localhost:5173" class="btn-primary reveal">CREATE YOUR ACCOUNT →</a>
+  </section>
+
+  <!-- FOOTER -->
+  <footer>
+    <div style="display:flex;align-items:center;gap:0.6rem;">
+      <span>👻</span>
+      <span>Ghost Chat — Built for privacy, by default.</span>
+    </div>
+    <div style="color:#333;">No data collected · No ads · No identity required</div>
+  </footer>
+
+  <script>
+    // Scroll reveal
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting) {
+          entry.target.classList.add('visible')
+        }
+      })
+    }, { threshold: 0.1 })
+
+    document.querySelectorAll('.reveal').forEach(el => observer.observe(el))
+  </script>
+</body>
+</html>
